@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guan-cheng 3C - 筆電展示櫃管理系統</title>
+    <style>
+        :root {
+            --used-color: #ff4d4d;
+            --empty-color: #2ecc71;
+            --bg-color: #f5f6fa;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, "Microsoft JhengHei";
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        header {
+            max-width: 1200px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 15px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #2c3e50;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-add { background-color: #3498db; color: white; }
+        .btn-add:hover { background-color: #2980b9; }
+        .btn-remove { background-color: #e74c3c; color: white; }
+        .btn-remove:hover { background-color: #c0392b; }
+        .btn-reset { background-color: #95a5a6; color: white; }
+        .btn-reset:hover { background-color: #7f8c8d; }
+
+        .stats {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+
+        /* 展示櫃樣式 */
+        .showcase {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 15px;
+            background: #e0e0e0;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.1);
+            border-bottom: 8px solid #bdc3c7; /* 模擬櫃子木板厚度 */
+        }
+
+        /* 格子基本樣式 */
+        .slot {
+            aspect-ratio: 1 / 1;
+            background-color: var(--empty-color);
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1), inset 0 -4px 0 rgba(0,0,0,0.15);
+            transition: transform 0.1s, background-color 0.3s;
+            position: relative;
+        }
+
+        .slot:hover {
+            transform: scale(1.05);
+        }
+
+        /* 已使用狀態（紅色） */
+        .slot.used {
+            background-color: var(--used-color);
+        }
+
+        .slot .status-text {
+            font-size: 11px;
+            margin-top: 5px;
+            background: rgba(0,0,0,0.2);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>筆電展示櫃管理系統</h1>
+            <div class="stats" id="stats-display">總計: 0 格 | 已使用: 0 | 空置: 0</div>
+        </div>
+        <div class="controls">
+            <button class="btn-add" onclick="changeSlots(1)">＋ 增加 1 格</button>
+            <button class="btn-remove" onclick="changeSlots(-1)">－ 減少 1 格</button>
+            <button class="btn-reset" onclick="resetAll()">全部清空 (綠色)</button>
+        </div>
+    </header>
+
+    <div class="showcase" id="showcase-container"></div>
+
+    <script>
+        // 初始化參數
+        let totalSlots = 108;
+        let slotStates = {}; // 紀錄每一格是否被使用，格式例如： {1: true, 2: false}
+
+        // 從瀏覽器本地儲存讀取資料 (LocalStorage)
+        function loadData() {
+            const savedTotal = localStorage.getItem('nb_total_slots');
+            const savedStates = localStorage.getItem('nb_slot_states');
+            
+            if (savedTotal) totalSlots = parseInt(savedTotal);
+            if (savedStates) slotStates = JSON.parse(savedStates);
+        }
+
+        // 儲存資料到 LocalStorage
+        function saveData() {
+            localStorage.setItem('nb_total_slots', totalSlots);
+            localStorage.setItem('nb_slot_states', JSON.stringify(slotStates));
+        }
+
+        // 補零功能 (將 1 變成 001)
+        function formatNumber(num) {
+            return String(num).padStart(3, '0');
+        }
+
+        // 渲染/重繪整個展示櫃
+        function renderShowcase() {
+            const container = document.getElementById('showcase-container');
+            container.innerHTML = ''; // 清空舊畫面
+
+            let usedCount = 0;
+
+            for (let i = 1; i <= totalSlots; i++) {
+                const isUsed = slotStates[i] || false;
+                if (isUsed) usedCount++;
+
+                // 建立格子元素
+                const slotDiv = document.createElement('div');
+                slotDiv.className = `slot ${isUsed ? 'used' : ''}`;
+                
+                // 內文字
+                slotDiv.innerHTML = `
+                    <span>NB-${formatNumber(i)}</span>
+                    <span class="status-text">${isUsed ? '已佔用' : '空置中'}</span>
+                `;
+
+                // 綁定點擊事件
+                slotDiv.onclick = () => toggleSlot(i);
+
+                container.appendChild(slotDiv);
+            }
+
+            // 更新上方統計數據
+            document.getElementById('stats-display').innerText = 
+                `總計: ${totalSlots} 格 | 已使用: ${usedCount} (紅) | 空置: ${totalSlots - usedCount} (綠)`;
+        }
+
+        // 切換格子的使用狀態
+        function toggleSlot(index) {
+            slotStates[index] = !slotStates[index];
+            saveData();
+            renderShowcase();
+        }
+
+        // 手動增加或減少格子
+        function changeSlots(amount) {
+            const newTotal = totalSlots + amount;
+            if (newTotal < 1) {
+                alert("格子數量不能少於 1 格！");
+                return;
+            }
+            
+            // 如果是減少格子，刪除多餘格子的狀態資料
+            if (amount < 0) {
+                for (let i = totalSlots; i > newTotal; i--) {
+                    delete slotStates[i];
+                }
+            }
+
+            totalSlots = newTotal;
+            saveData();
+            renderShowcase();
+        }
+
+        // 重設所有格子為未使用
+        function resetAll() {
+            if(confirm("確定要將所有格子重設為「空置 (綠色)」嗎？")) {
+                slotStates = {};
+                saveData();
+                renderShowcase();
+            }
+        }
+
+        // 網頁載入時初始化
+        loadData();
+        renderShowcase();
+    </script>
+</body>
+</html>
