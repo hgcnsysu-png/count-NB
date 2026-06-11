@@ -3,141 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guan-cheng 3C - 雲端即時筆電展示櫃</title>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-
-        // ==========================================
-        //  請在下方貼上你在 Firebase 申請到的金鑰設定
-        // ==========================================
-        const firebaseConfig = {
-            apiKey: "你的_API_KEY",
-            authDomain: "你的_PROJECT_ID.firebaseapp.com",
-            databaseURL: "https://你的_PROJECT_ID-default-rtdb.firebaseio.com",
-            projectId: "你的_PROJECT_ID",
-            storageBucket: "你的_PROJECT_ID.appspot.com",
-            messagingSenderId: "你的_SENDER_ID",
-            appId: "你的_APP_ID"
-        };
-
-        // 初始化 Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const dbRef = ref(db, 'showcase_data');
-
-        // 全域變數
-        let totalSlots = 108;
-        let slotStates = {};
-
-        // 監聽雲端資料庫變更（異地同步的核心：只要雲端一變，所有人畫面立刻跟著變）
-        onValue(dbRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                totalSlots = data.totalSlots || 108;
-                slotStates = data.slotStates || {};
-            } else {
-                // 如果資料庫是空的，初始化預設值
-                totalSlots = 108;
-                slotStates = {};
-            }
-            renderShowcase();
-        });
-
-        // 傳送最新資料到雲端
-        function pushToCloud() {
-            set(dbRef, {
-                totalSlots: totalSlots,
-                slotStates: slotStates
-            });
-        }
-
-        // 補零功能 (將 1 變成 001)
-        function formatNumber(num) {
-            return String(num).padStart(3, '0');
-        }
-
-        // 渲染展示櫃畫面
-        function renderShowcase() {
-            const container = document.getElementById('showcase-container');
-            container.innerHTML = ''; 
-
-            let usedCount = 0;
-
-            for (let i = 1; i <= totalSlots; i++) {
-                const isUsed = slotStates[i] || false;
-                if (isUsed) usedCount++;
-
-                const slotDiv = document.createElement('div');
-                slotDiv.className = `slot ${isUsed ? 'used' : ''}`;
-                
-                slotDiv.innerHTML = `
-                    <span>NB-${formatNumber(i)}</span>
-                    <span class="status-text">${isUsed ? '已佔用' : '空置中'}</span>
-                `;
-
-                // 點擊事件：切換本地狀態並直接推送到雲端
-                slotDiv.onclick = () => {
-                    slotStates[i] = !slotStates[i];
-                    pushToCloud();
-                };
-
-                container.appendChild(slotDiv);
-            }
-
-            document.getElementById('stats-display').innerText = 
-                `總計: ${totalSlots} 格 | 已使用: ${usedCount} (紅) | 空置: ${totalSlots - usedCount} (綠)`;
-        }
-
-        // 綁定按鈕事件到全域，讓 HTML 按鈕可以呼叫
-        window.changeSlots = function(amount) {
-            const newTotal = totalSlots + amount;
-            if (newTotal < 1) {
-                alert("格子數量不能少於 1 格！");
-                return;
-            }
-            
-            if (amount < 0) {
-                for (let i = totalSlots; i > newTotal; i--) {
-                    delete slotStates[i];
-                }
-            }
-
-            totalSlots = newTotal;
-            pushToCloud();
-        };
-
-        window.resetAll = function() {
-            if(confirm("確定要將所有格子重設為「空置 (綠色)」嗎？")) {
-                slotStates = {};
-                pushToCloud();
-            }
-        };
-    </script>
+    <title>Guan-cheng 3C - Google 試算表同步展示櫃</title>
     <style>
-        :root {
-            --used-color: #ff4d4d;
-            --empty-color: #2ecc71;
-            --bg-color: #f5f6fa;
-            --card-bg: #ffffff;
+        :root { 
+            --used-color: #ff4d4d; 
+            --empty-color: #2ecc71; 
+            --bg-color: #f5f6fa; 
+            --card-bg: #ffffff; 
         }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, "Microsoft JhengHei";
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 20px;
-            color: #333;
+        body { 
+            font-family: "Microsoft JhengHei", sans-serif; 
+            background-color: var(--bg-color); 
+            margin: 0; 
+            padding: 20px; 
+            color: #333; 
         }
-        header {
-            max-width: 1200px;
-            margin: 0 auto 20px auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-            padding: 15px 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        header { 
+            max-width: 1200px; 
+            margin: 0 auto 20px auto; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: var(--card-bg); 
+            padding: 15px 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
         }
         h1 { margin: 0; font-size: 24px; color: #2c3e50; }
         .controls { display: flex; gap: 10px; align-items: center; }
@@ -149,44 +39,45 @@
         .btn-reset { background-color: #95a5a6; color: white; }
         .btn-reset:hover { background-color: #7f8c8d; }
         .stats { font-size: 14px; color: #7f8c8d; }
-        .showcase {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-            gap: 15px;
-            background: #e0e0e0;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: inset 0 4px 10px rgba(0,0,0,0.1);
-            border-bottom: 8px solid #bdc3c7;
+        .showcase { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); 
+            gap: 15px; 
+            background: #e0e0e0; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.1); 
+            border-bottom: 8px solid #bdc3c7; 
         }
-        .slot {
-            aspect-ratio: 1 / 1;
-            background-color: var(--empty-color);
-            color: white;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            cursor: pointer;
-            user-select: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1), inset 0 -4px 0 rgba(0,0,0,0.15);
-            transition: transform 0.1s, background-color 0.3s;
+        .slot { 
+            aspect-ratio: 1 / 1; 
+            background-color: var(--empty-color); 
+            color: white; 
+            border-radius: 8px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            font-weight: bold; 
+            cursor: pointer; 
+            user-select: none; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1), inset 0 -4px 0 rgba(0,0,0,0.15); 
+            transition: transform 0.1s; 
         }
         .slot:hover { transform: scale(1.05); }
         .slot.used { background-color: var(--used-color); }
         .slot .status-text { font-size: 11px; margin-top: 5px; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 10px; font-weight: normal; }
+        .loading { color: #f39c12; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <header>
         <div>
-            <h1>雲端即時筆電展示櫃</h1>
-            <div class="stats" id="stats-display">同步中...</div>
+            <h1>Google 雲端同步筆電展示櫃</h1>
+            <div class="stats" id="stats-display">資料載入中...</div>
         </div>
         <div class="controls">
             <button class="btn-add" onclick="changeSlots(1)">＋ 增加 1 格</button>
@@ -197,5 +88,125 @@
 
     <div class="showcase" id="showcase-container"></div>
 
+    <script>
+        // 已自動填入您提供的 Google Apps Script 部署網址
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyWt4oxiLh_BuGxt6O73laLNiZbsIIGzMCo9wkVyVx1WmBWF99p7zQVzJdmPFk-s8yA/exec";
+
+        let totalSlots = 108;
+        let slotStates = {};
+        let isSaving = false;
+
+        // 從 Google 試算表讀取最新狀態
+        function loadFromGoogle() {
+            fetch(GAS_URL)
+                .then(response => response.json())
+                .then(data => {
+                    totalSlots = data.totalSlots;
+                    slotStates = data.slotStates;
+                    renderShowcase();
+                })
+                .catch(error => {
+                    console.error("讀取失敗:", error);
+                    document.getElementById('stats-display').innerText = "雲端連線失敗，請重新整理網頁。";
+                });
+        }
+
+        // 將資料同步回 Google 試算表
+        function saveToGoogle() {
+            isSaving = true;
+            document.getElementById('stats-display').className = "loading";
+            document.getElementById('stats-display').innerText = "雲端同步中...";
+
+            fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "update",
+                    totalSlots: totalSlots,
+                    slotStates: slotStates
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                isSaving = false;
+                document.getElementById('stats-display').className = "stats";
+                updateStatsText();
+            })
+            .catch(error => {
+                console.error("儲存失敗:", error);
+                isSaving = false;
+                document.getElementById('stats-display').className = "stats";
+                updateStatsText();
+            });
+        }
+
+        function formatNumber(num) {
+            return String(num).padStart(3, '0');
+        }
+
+        function updateStatsText() {
+            let usedCount = 0;
+            for (let i = 1; i <= totalSlots; i++) {
+                if (slotStates[i]) usedCount++;
+            }
+            document.getElementById('stats-display').innerText = 
+                `總計: ${totalSlots} 格 | 已使用: ${usedCount} (紅) | 空置: ${totalSlots - usedCount} (綠)`;
+        }
+
+        function renderShowcase() {
+            const container = document.getElementById('showcase-container');
+            container.innerHTML = ''; 
+
+            for (let i = 1; i <= totalSlots; i++) {
+                const isUsed = slotStates[i] || false;
+                const slotDiv = document.createElement('div');
+                slotDiv.className = `slot ${isUsed ? 'used' : ''}`;
+                
+                slotDiv.innerHTML = `
+                    <span>NB-${formatNumber(i)}</span>
+                    <span class="status-text">${isUsed ? '已佔用' : '空置中'}</span>
+                `;
+
+                slotDiv.onclick = () => {
+                    if (isSaving) return; // 防止連續點擊造成同步衝突
+                    slotStates[i] = !slotStates[i];
+                    renderShowcase(); // 先更新本地畫面
+                    saveToGoogle();   // 同步到 Google
+                };
+
+                container.appendChild(slotDiv);
+            }
+            updateStatsText();
+        }
+
+        function changeSlots(amount) {
+            if (isSaving) return;
+            const newTotal = totalSlots + amount;
+            if (newTotal < 1) return;
+            
+            if (amount < 0) {
+                for (let i = totalSlots; i > newTotal; i--) { delete slotStates[i]; }
+            }
+            totalSlots = newTotal;
+            renderShowcase();
+            saveToGoogle();
+        }
+
+        function resetAll() {
+            if (isSaving) return;
+            if(confirm("確定要將所有格子重設為「空置 (綠色)」嗎？")) {
+                slotStates = {};
+                renderShowcase();
+                saveToGoogle();
+            }
+        }
+
+        // 定時輪詢（每 10 秒自動同步一次別人的更新資料）
+        setInterval(() => {
+            if (!isSaving) loadFromGoogle();
+        }, 10000);
+
+        // 首次網頁載入
+        loadFromGoogle();
+    </script>
 </body>
 </html>
