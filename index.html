@@ -6,7 +6,7 @@
     <title>筆電庫存管理系統</title>
     <style>
         :root { --used-color: #ff4d4d; --empty-color: #2ecc71; --selected-color: #f1c40f; --bg-color: #f5f6fa; }
-        body { font-family: "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); padding: 20px; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); padding: 20px; margin: 0; }
         header { max-width: 1200px; margin: 0 auto 20px; display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 30px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .controls { display: flex; gap: 10px; }
         button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -34,7 +34,6 @@
 <div class="showcase" id="showcase-container"></div>
 
 <script>
-    // 確保這裡的網址與你最新的 GAS 部署網址完全一致
     const GAS_URL = "https://script.google.com/macros/s/AKfycbz_0wlc65UHInqCfYtaAn1AEVwlyHuNKPJz9QA4HL9cDVqKSPOmIy-WArI0mSgm4FNW/exec";
     
     let totalSlots = 108;
@@ -65,7 +64,7 @@
             });
             loadData();
         } catch (e) {
-            alert("同步失敗，請檢查網路。");
+            alert("同步失敗，請確認網路與 GAS 權限。");
             loadData();
         }
     }
@@ -82,15 +81,19 @@
             div.className = `slot ${slotStates[i] ? 'used' : ''} ${selectedSlots.has(i) ? 'selected' : ''}`;
             div.innerHTML = `<span>NB-${String(i).padStart(3, '0')}</span><span class="status-text">${slotStates[i] ? '佔用' : '空置'}</span>`;
             
-            div.onclick = () => {
-                if (isBatchMode) {
-                    selectedSlots.has(i) ? selectedSlots.delete(i) : selectedSlots.add(i);
-                    render();
-                } else {
-                    slotStates[i] = !slotStates[i];
-                    saveToGoogle();
-                }
-            };
+            // 使用閉包確保點擊事件綁定正確的編號 i
+            div.onclick = (function(index) {
+                return function() {
+                    if (isBatchMode) {
+                        selectedSlots.has(index) ? selectedSlots.delete(index) : selectedSlots.add(index);
+                        render();
+                    } else {
+                        slotStates[index] = !slotStates[index];
+                        saveToGoogle();
+                    }
+                };
+            })(i);
+            
             container.appendChild(div);
         }
         document.getElementById('stats').innerText = `總計: ${totalSlots} 格 | 已佔用: ${usedCount} 格`;
@@ -110,7 +113,7 @@
         toggleBatchMode();
     }
 
-    // 初始化執行
+    // 初始化
     loadData();
 </script>
 </body>
