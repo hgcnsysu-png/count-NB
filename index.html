@@ -3,264 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guan-cheng 3C - 雲端筆電展示櫃 (支援批量選取)</title>
+    <title>筆電庫存管理系統</title>
     <style>
-        :root { 
-            --used-color: #ff4d4d; 
-            --empty-color: #2ecc71; 
-            --bg-color: #f5f6fa; 
-            --card-bg: #ffffff; 
-        }
-        body { 
-            font-family: "Microsoft JhengHei", sans-serif; 
-            background-color: var(--bg-color); 
-            margin: 0; 
-            padding: 20px; 
-            color: #333; 
-            user-select: none; /* 防止滑鼠拖曳時選取到文字 */
-        }
-        header { 
-            max-width: 1200px; 
-            margin: 0 auto 20px auto; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            background: var(--card-bg); 
-            padding: 15px 30px; 
-            border-radius: 10px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-        }
-        h1 { margin: 0; font-size: 24px; color: #2c3e50; }
-        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
-        
-        /* 模式按鈕樣式 */
-        .btn-mode { background-color: #f1c40f; color: #2c3e50; border: 2px solid #f39c12; }
-        .btn-mode.active { background-color: #e67e22; color: white; border-color: #d35400; }
-        
-        .btn-add { background-color: #3498db; color: white; }
-        .btn-remove { background-color: #e74c3c; color: white; }
-        .btn-reset { background-color: #95a5a6; color: white; }
-        .stats { font-size: 14px; color: #7f8c8d; }
-        .loading { color: #f39c12; font-weight: bold; }
-        
-        .showcase { 
-            max-width: 1200px; 
-            margin: 0 auto; 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); 
-            gap: 15px; 
-            background: #e0e0e0; 
-            padding: 20px; 
-            border-radius: 12px; 
-            box-shadow: inset 0 4px 10px rgba(0,0,0,0.1); 
-            border-bottom: 8px solid #bdc3c7; 
-        }
-        .slot { 
-            aspect-ratio: 1 / 1; 
-            background-color: var(--empty-color); 
-            color: white; 
-            border-radius: 8px; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            font-weight: bold; 
-            cursor: pointer; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1), inset 0 -4px 0 rgba(0,0,0,0.15); 
-            transition: transform 0.1s, background-color 0.1s; 
-        }
+        :root { --used-color: #ff4d4d; --empty-color: #2ecc71; --selected-color: #f1c40f; --bg-color: #f5f6fa; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: var(--bg-color); padding: 20px; }
+        header { max-width: 1200px; margin: 0 auto 20px; display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 30px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .controls { display: flex; gap: 10px; }
+        button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .showcase { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+        .slot { aspect-ratio: 1 / 1; background-color: var(--empty-color); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 8px; cursor: pointer; border: 4px solid transparent; transition: 0.2s; }
         .slot.used { background-color: var(--used-color); }
-        
-        /* 拖曳選取中臨時變色的視覺效果 */
-        .slot.selecting-used { background-color: #ff7675 !important; opacity: 0.8; }
-        .slot.selecting-empty { background-color: #55efc4 !important; opacity: 0.8; }
-        
-        .slot .status-text { font-size: 11px; margin-top: 5px; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 10px; font-weight: normal; }
+        .slot.selected { border-color: var(--selected-color); transform: scale(0.95); }
+        .status-text { font-size: 10px; margin-top: 5px; background: rgba(0,0,0,0.2); padding: 2px 5px; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div>
-            <h1>雲端筆電展示櫃</h1>
-            <div class="stats" id="stats-display">資料載入中...</div>
-        </div>
-        <div class="controls">
-            <button id="mode-button" class="btn-mode" onclick="toggleMode()">模式：單擊切換</button>
-            <button class="btn-add" onclick="changeSlots(1)">＋ 增加 1 格</button>
-            <button class="btn-remove" onclick="changeSlots(-1)">－ 減少 1 格</button>
-            <button class="btn-reset" onclick="resetAll()">全部清空</button>
-        </div>
-    </header>
+<header>
+    <div>
+        <h1>筆電展示櫃管理</h1>
+        <div id="stats">資料載入中...</div>
+    </div>
+    <div class="controls">
+        <button id="batch-btn" onclick="toggleBatchMode()" style="background:#3498db; color:white;">進入批量模式</button>
+        <button onclick="batchAction(true)" style="background:#e74c3c; color:white;">設為已佔用</button>
+        <button onclick="batchAction(false)" style="background:#2ecc71; color:white;">設為空置</button>
+    </div>
+</header>
 
-    <div class="showcase" id="showcase-container"></div>
+<div class="showcase" id="showcase-container"></div>
 
-    <script>
-        // ⚠️ 請填入您重新部署後取得的 GAS 新網址
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbyWt4oxiLh_BuGxt6O73laLNiZbsIIGzMCo9wkVyVx1WmBWF99p7zQVzJdmPFk-s8yA/exec";
+<script>
+    // 確保這裡的網址與你最新的 GAS 部署網址完全一致
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbz_0wlc65UHInqCfYtaAn1AEVwlyHuNKPJz9QA4HL9cDVqKSPOmIy-WArI0mSgm4FNW/exec";
+    
+    let totalSlots = 108;
+    let slotStates = {};
+    let isBatchMode = false;
+    let selectedSlots = new Set();
 
-        let totalSlots = 108;
-        let slotStates = {};
-        let isSaving = false;
-        
-        // 批量控制變數
-        let currentMode = "click"; // "click" 或 "drag"
-        let isMouseDown = false;
-        let dragTargetState = true; // 拖曳時是要全部變紅色(true) 還是全部變綠色(false)
-
-        // 自雲端讀取
-        function loadFromGoogle() {
-            if (isSaving || isMouseDown) return;
-            fetch(GAS_URL)
-                .then(res => res.json())
-                .then(data => {
-                    totalSlots = data.totalSlots;
-                    slotStates = data.slotStates;
-                    renderShowcase();
-                })
-                .catch(err => {
-                    document.getElementById('stats-display').innerText = "連線失敗，請重新整理。";
-                });
+    // 載入資料
+    async function loadData() {
+        try {
+            const res = await fetch(GAS_URL);
+            const data = await res.json();
+            totalSlots = data.totalSlots || 108;
+            slotStates = data.slotStates || {};
+            render();
+        } catch (e) {
+            document.getElementById('stats').innerText = "連線錯誤，請確認部署設定。";
         }
+    }
 
-        // 寫入雲端 (精準避開 CORS 限制)
-        function saveToGoogle() {
-            isSaving = true;
-            document.getElementById('stats-display').className = "loading";
-            document.getElementById('stats-display').innerText = "雲端同步中...";
-
-            const params = new URLSearchParams({
-                action: "update",
-                totalSlots: totalSlots,
-                slotStates: JSON.stringify(slotStates)
+    // 同步到 Google 試算表
+    async function saveToGoogle() {
+        document.getElementById('stats').innerText = "同步中...";
+        try {
+            await fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "update", totalSlots, slotStates })
             });
-
-            fetch(`${GAS_URL}?${params.toString()}`)
-                .then(res => res.json())
-                .then(() => {
-                    isSaving = false;
-                    document.getElementById('stats-display').className = "stats";
-                    updateStatsText();
-                })
-                .catch(() => {
-                    isSaving = false;
-                    document.getElementById('stats-display').className = "stats";
-                    updateStatsText();
-                });
+            loadData();
+        } catch (e) {
+            alert("同步失敗，請檢查網路。");
+            loadData();
         }
+    }
 
-        // 切換操作模式
-        function toggleMode() {
-            const btn = document.getElementById('mode-button');
-            if (currentMode === "click") {
-                currentMode = "drag";
-                btn.innerText = "模式：滑鼠拖曳大範圍選取";
-                btn.classList.add('active');
-            } else {
-                currentMode = "click";
-                btn.innerText = "模式：單擊切換";
-                btn.classList.remove('active');
-            }
+    // 渲染畫面
+    function render() {
+        const container = document.getElementById('showcase-container');
+        container.innerHTML = '';
+        let usedCount = 0;
+
+        for (let i = 1; i <= totalSlots; i++) {
+            if (slotStates[i]) usedCount++;
+            const div = document.createElement('div');
+            div.className = `slot ${slotStates[i] ? 'used' : ''} ${selectedSlots.has(i) ? 'selected' : ''}`;
+            div.innerHTML = `<span>NB-${String(i).padStart(3, '0')}</span><span class="status-text">${slotStates[i] ? '佔用' : '空置'}</span>`;
+            
+            div.onclick = () => {
+                if (isBatchMode) {
+                    selectedSlots.has(i) ? selectedSlots.delete(i) : selectedSlots.add(i);
+                    render();
+                } else {
+                    slotStates[i] = !slotStates[i];
+                    saveToGoogle();
+                }
+            };
+            container.appendChild(div);
         }
+        document.getElementById('stats').innerText = `總計: ${totalSlots} 格 | 已佔用: ${usedCount} 格`;
+    }
 
-        function formatNumber(num) { return String(num).padStart(3, '0'); }
+    function toggleBatchMode() {
+        isBatchMode = !isBatchMode;
+        document.getElementById('batch-btn').innerText = isBatchMode ? "退出批量模式" : "進入批量模式";
+        if (!isBatchMode) { selectedSlots.clear(); render(); }
+    }
 
-        function updateStatsText() {
-            let usedCount = 0;
-            for (let i = 1; i <= totalSlots; i++) { if (slotStates[i]) usedCount++; }
-            document.getElementById('stats-display').innerText = 
-                `總計: ${totalSlots} 格 | 已使用: ${usedCount} (紅) | 空置: ${totalSlots - usedCount} (綠)`;
-        }
+    function batchAction(status) {
+        if (selectedSlots.size === 0) return alert("請先選取格子！");
+        selectedSlots.forEach(i => slotStates[i] = status);
+        selectedSlots.clear();
+        saveToGoogle();
+        toggleBatchMode();
+    }
 
-        function renderShowcase() {
-            const container = document.getElementById('showcase-container');
-            container.innerHTML = ''; 
-
-            for (let i = 1; i <= totalSlots; i++) {
-                const isUsed = slotStates[i] || false;
-                const slotDiv = document.createElement('div');
-                slotDiv.className = `slot ${isUsed ? 'used' : ''}`;
-                slotDiv.dataset.id = i;
-                
-                slotDiv.innerHTML = `
-                    <span>NB-${formatNumber(i)}</span>
-                    <span class="status-text">${isUsed ? '已佔用' : '空置中'}</span>
-                `;
-
-                // 滑鼠事件處理 (支援單擊與滑鼠拖曳)
-                slotDiv.onmousedown = (e) => {
-                    if (isSaving) return;
-                    isMouseDown = true;
-                    
-                    if (currentMode === "click") {
-                        // 單擊模式：直接切換
-                        slotStates[i] = !slotStates[i];
-                        renderShowcase();
-                        saveToGoogle();
-                        isMouseDown = false; // 立即結束
-                    } else {
-                        // 拖曳模式：以點擊的第一台車位反向狀態為基準
-                        dragTargetState = !slotStates[i]; 
-                        applyDragStyle(slotDiv, dragTargetState);
-                    }
-                };
-
-                slotDiv.onmouseenter = () => {
-                    if (currentMode === "drag" && isMouseDown) {
-                        applyDragStyle(slotDiv, dragTargetState);
-                    }
-                };
-
-                container.appendChild(slotDiv);
-            }
-            updateStatsText();
-        }
-
-        // 臨時渲染拖曳中的顏色
-        function applyDragStyle(element, targetState) {
-            const id = element.dataset.id;
-            slotStates[id] = targetState; // 即時改動記憶體狀態
-            element.className = `slot ${targetState ? 'selecting-used' : 'selecting-empty'}`;
-            element.querySelector('.status-text').innerText = targetState ? "準備佔用" : "準備空置";
-        }
-
-        // 全域放開滑鼠事件：批次拖曳結束後，才統一上傳雲端
-        window.onmouseup = () => {
-            if (currentMode === "drag" && isMouseDown) {
-                isMouseDown = false;
-                renderShowcase(); // 正式刷新畫面色彩
-                saveToGoogle();   // 批次打包送上雲端
-            }
-            isMouseDown = false;
-        };
-
-        function changeSlots(amount) {
-            if (isSaving) return;
-            const newTotal = totalSlots + amount;
-            if (newTotal < 1) return;
-            if (amount < 0) {
-                for (let i = totalSlots; i > newTotal; i--) { delete slotStates[i]; }
-            }
-            totalSlots = newTotal;
-            renderShowcase();
-            saveToGoogle();
-        }
-
-        function resetAll() {
-            if (isSaving) return;
-            if(confirm("確定要將所有格子清空為綠色嗎？")) {
-                slotStates = {};
-                renderShowcase();
-                saveToGoogle();
-            }
-        }
-
-        // 每 8 秒背景微幅同步
-        setInterval(loadFromGoogle, 8000);
-
-        // 首次初始化
-        loadFromGoogle();
-    </script>
+    // 初始化執行
+    loadData();
+</script>
 </body>
 </html>
